@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Keyword Intent Classifier — Mogaji Digital</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root {
+  --red:    #DC343B;
+  --red-lt: #fbeaea;
+  --orange: #FFA000;
+  --ora-lt: #fff6e0;
+  --green:  #177245;
+  --grn-lt: #e5f3ec;
+  --blue:   #006DB0;
+  --blu-lt: #e0f0fb;
+  --plat:   #DCDCDC;
+  --onyx:   #444444;
+  --white:  #ffffff;
+  --bg:     #f4f4f2;
+  --text:   #222222;
+  --muted:  #777777;
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+/* ─── HEADER (≈5cm / ~190px total top block) ─── */
+header{
+  background:var(--onyx);
+  padding:0 32px;
+  display:flex;align-items:center;justify-content:space-between;
+  height:44px;
+  position:sticky;top:0;z-index:200;
+  border-bottom:1px solid rgba(255,255,255,.1);
+}
+.logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+.logo-mark{width:22px;height:22px;background:var(--red);border-radius:4px;display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;color:white;font-size:12px;font-weight:700}
+.logo-text{color:white;font-size:12px;font-weight:500;letter-spacing:.01em}
+.hdr-badge{background:rgba(255,255,255,.1);color:rgba(255,255,255,.55);padding:2px 9px;border-radius:99px;font-size:11px;border:1px solid rgba(255,255,255,.12);white-space:nowrap}
+
+/* ─── HERO (compact) ─── */
+.hero{background:var(--onyx);padding:16px 32px 0;position:relative;overflow:hidden;border-bottom:2px solid var(--red)}
+.hero::before{content:'';position:absolute;top:-80px;right:-80px;width:300px;height:300px;background:radial-gradient(circle,rgba(220,52,59,.1) 0%,transparent 70%);pointer-events:none}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:5px;background:rgba(23,114,69,.2);border:1px solid rgba(23,114,69,.4);color:#4dba8a;padding:3px 10px;border-radius:99px;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
+.hero-title{font-family:'DM Serif Display',serif;font-size:clamp(17px,2.5vw,24px);color:white;line-height:1.15;max-width:680px;margin-bottom:6px}
+.hero-title em{font-style:italic;color:#DC343B}
+.hero-sub{color:rgba(255,255,255,.45);font-size:12px;max-width:520px;line-height:1.6;margin-bottom:12px}
+.hero-stats{display:flex;gap:22px;flex-wrap:wrap;padding-bottom:14px}
+.stat{color:white}.stat-num{font-family:'DM Serif Display',serif;font-size:17px;color:var(--orange);display:block}
+.stat-lbl{font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em}
+
+/* ─── MAIN TABS ─── */
+.main-tabs-wrap{background:var(--onyx);padding:10px 32px 0}
+.main-tabs{display:flex;gap:2px;border-bottom:1px solid rgba(255,255,255,.1);overflow-x:auto;scrollbar-width:none}
+.main-tabs::-webkit-scrollbar{display:none}
+.main-tab{padding:10px 18px;font-size:13px;font-weight:500;color:rgba(255,255,255,.45);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .2s;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:7px;white-space:nowrap}
+.main-tab:hover{color:rgba(255,255,255,.75)}
+.main-tab.active{color:white;border-bottom-color:var(--red)}
+
+/* ─── CONTENT ─── */
+.content-area{padding:32px;max-width:1080px}
+.tab-panel{display:none}
+.tab-panel.active{display:block;animation:fadeUp .28s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* typography helpers */
+.eyebrow{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+.eyebrow.red{color:var(--red)}.eyebrow.green{color:var(--green)}.eyebrow.blue{color:var(--blue)}.eyebrow.orange{color:var(--orange)}
+.sec-title{font-family:'DM Serif Display',serif;font-size:clamp(22px,3vw,30px);color:var(--text);margin-bottom:10px;line-height:1.2}
+.sec-body{font-size:14px;color:var(--muted);line-height:1.75;max-width:640px;margin-bottom:28px}
+
+/* card grids */
+.card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:28px}
+.card{background:white;border-radius:var(--radius);padding:20px;border:1px solid var(--plat)}
+.card-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;margin-bottom:12px}
+.card-icon.red{background:var(--red-lt)}.card-icon.orange{background:var(--ora-lt)}.card-icon.green{background:var(--grn-lt)}.card-icon.blue{background:var(--blu-lt)}
+.card-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px}
+.card-body{font-size:13px;color:var(--muted);line-height:1.65}
+
+/* split */
+.split-box{display:grid;grid-template-columns:1fr 1fr;gap:2px;border-radius:var(--radius);overflow:hidden;margin-bottom:28px;border:1px solid var(--plat)}
+.split-left{background:white;padding:24px}.split-right{background:var(--onyx);padding:24px}
+.split-label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
+.split-left .split-label{color:var(--orange)}.split-right .split-label{color:var(--green)}
+.split-heading{font-family:'DM Serif Display',serif;font-size:18px;margin-bottom:10px}
+.split-left .split-heading{color:var(--text)}.split-right .split-heading{color:white}
+.split-text{font-size:13px;line-height:1.7}
+.split-left .split-text{color:var(--muted)}.split-right .split-text{color:rgba(255,255,255,.55)}
+.check-list{list-style:none;margin-top:12px}
+.check-list li{font-size:13px;padding:5px 0;display:flex;align-items:flex-start;gap:7px}
+.check-list li::before{content:'✓';font-weight:700;flex-shrink:0;margin-top:1px}
+.split-left .check-list li::before{color:var(--green)}.split-right .check-list li{color:rgba(255,255,255,.7)}.split-right .check-list li::before{color:#4dba8a}
+
+/* info box */
+.info-box{border-radius:var(--radius-sm);padding:13px 16px;font-size:13px;line-height:1.65;margin-bottom:22px;border-left:3px solid}
+.info-box.green{background:var(--grn-lt);border-color:var(--green);color:#0f4a2e}
+.info-box.blue{background:var(--blu-lt);border-color:var(--blue);color:#00406a}
+.info-box.orange{background:var(--ora-lt);border-color:var(--orange);color:#6b4100}
+.info-box.red{background:var(--red-lt);border-color:var(--red);color:#7a1014}
+
+/* pill */
+.pill-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.pill{padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600}
+.pill-red{background:var(--red-lt);color:var(--red)}.pill-green{background:var(--grn-lt);color:var(--green)}
+.pill-blue{background:var(--blu-lt);color:var(--blue)}.pill-orange{background:var(--ora-lt);color:#7a4800}
+.pill-dark{background:var(--onyx);color:white}
+
+/* input flow */
+.input-flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:28px}
+.input-box{background:white;border:1px solid var(--plat);border-radius:var(--radius);padding:20px}
+.input-number{width:26px;height:26px;border-radius:50%;background:var(--onyx);color:white;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;margin-bottom:10px}
+.input-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:5px}
+.input-desc{font-size:13px;color:var(--muted);line-height:1.6}
+.source-tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500;margin:3px 2px 0 0}
+.tag-green{background:var(--grn-lt);color:var(--green)}.tag-orange{background:var(--ora-lt);color:#7a4800}.tag-gray{background:var(--plat);color:var(--onyx)}
+
+/* sample table */
+.sample-table-wrap{background:white;border-radius:var(--radius);border:1px solid var(--plat);overflow:hidden;margin-bottom:28px}
+.sample-table-head{background:var(--onyx);padding:11px 18px;display:flex;align-items:center;gap:8px}
+.sample-table-head span{color:rgba(255,255,255,.5);font-size:12px}.sample-table-head strong{color:white;font-size:12px}
+.sample-table{width:100%;border-collapse:collapse;font-size:13px}
+.sample-table th{text-align:left;padding:9px 14px;color:var(--muted);font-weight:600;border-bottom:1px solid var(--plat);background:var(--bg);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+.sample-table td{padding:10px 14px;border-bottom:1px solid #f0f0ee;color:var(--text)}
+.sample-table tr:last-child td{border-bottom:none}
+
+/* intent badges */
+.intent-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600}
+.intent-T{background:var(--grn-lt);color:var(--green)}.intent-I{background:var(--blu-lt);color:var(--blue)}.intent-N{background:var(--ora-lt);color:#7a4800}
+
+/* process tabs */
+.process-wrap{background:white;border-radius:var(--radius);border:1px solid var(--plat);overflow:hidden;margin-bottom:28px}
+.proc-tabs{display:flex;background:var(--bg);border-bottom:1px solid var(--plat);overflow-x:auto;scrollbar-width:none}
+.proc-tabs::-webkit-scrollbar{display:none}
+.proc-tab{padding:12px 16px;font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;font-family:'DM Sans',sans-serif;transition:all .2s;display:flex;align-items:center;gap:5px}
+.proc-tab:hover{color:var(--text)}.proc-tab.active{color:var(--green);border-bottom-color:var(--green);background:white}
+.proc-week{width:18px;height:18px;border-radius:50%;background:var(--onyx);color:white;font-size:9px;font-weight:700;text-align:center;line-height:18px;flex-shrink:0}
+.proc-tab.active .proc-week{background:var(--green)}
+.proc-panel{display:none;padding:28px}.proc-panel.active{display:block;animation:fadeUp .22s ease}
+
+/* timeline strip */
+.tl-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:2px;border-radius:var(--radius);overflow:hidden;margin-bottom:20px;border:1px solid var(--plat)}
+.tl-cell{padding:12px;background:white;cursor:pointer;transition:background .2s;border-right:1px solid var(--plat)}
+.tl-cell:last-child{border-right:none}.tl-cell:hover{background:var(--bg)}.tl-cell.active{background:var(--onyx)}
+.tl-week{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:3px}
+.tl-cell.active .tl-week{color:var(--orange)}.tl-name{font-size:12px;font-weight:500;color:var(--text);line-height:1.3}
+.tl-cell.active .tl-name{color:white}
+
+/* roadmap */
+.roadmap{display:flex;flex-direction:column;gap:0}
+.roadmap-step{display:flex;gap:16px;padding-bottom:28px}
+.roadmap-step:last-child{padding-bottom:0}
+.roadmap-left{display:flex;flex-direction:column;align-items:center;flex-shrink:0}
+.step-dot{width:32px;height:32px;border-radius:50%;color:white;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;z-index:1}
+.step-dot.green{background:var(--green)}.step-dot.blue{background:var(--blue)}.step-dot.red{background:var(--red)}.step-dot.orange{background:var(--orange);color:var(--onyx)}.step-dot.dark{background:var(--onyx)}
+.step-line{width:2px;flex:1;background:var(--plat);margin-top:4px;min-height:20px}
+.roadmap-step:last-child .step-line{display:none}
+.roadmap-right{flex:1;padding-top:4px}
+.step-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:5px}
+.step-desc{font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:8px}
+.code-block{background:var(--onyx);border-radius:var(--radius-sm);padding:12px 16px;font-family:'Courier New',monospace;font-size:11px;color:#9effd0;line-height:1.7;overflow-x:auto;margin-top:8px}
+.code-comment{color:rgba(255,255,255,.3)}.code-keyword{color:#b5d4f4}.code-string{color:#ffd080}.code-fn{color:#9effd0}
+
+/* output */
+.output-demo{background:white;border-radius:var(--radius);border:1px solid var(--plat);overflow:hidden;margin-bottom:28px}
+.demo-toolbar{background:var(--onyx);padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.demo-toolbar span{color:rgba(255,255,255,.5);font-size:12px}
+.filter-btns{display:flex;gap:5px;margin-left:auto;flex-wrap:wrap}
+.f-btn{padding:4px 12px;border-radius:99px;border:1px solid rgba(255,255,255,.2);background:transparent;color:rgba(255,255,255,.6);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
+.f-btn:hover{border-color:rgba(255,255,255,.4);color:white}.f-btn.active{background:var(--green);border-color:var(--green);color:white}
+.out-table{width:100%;border-collapse:collapse;font-size:13px}
+.out-table th{text-align:left;padding:9px 16px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;background:var(--bg);border-bottom:1px solid var(--plat)}
+.out-table td{padding:11px 16px;border-bottom:1px solid #f0f0ee;color:var(--text)}
+.out-table tr:last-child td{border-bottom:none}.out-table tr:hover td{background:var(--bg)}
+.conf-wrap{display:flex;align-items:center;gap:7px}
+.conf-track{flex:1;height:5px;background:var(--plat);border-radius:99px;min-width:60px}
+.conf-fill{height:100%;border-radius:99px}
+
+.value-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:28px}
+.value-card{background:white;border-radius:var(--radius);padding:18px 20px;border:1px solid var(--plat);border-left:4px solid}
+.value-card.red{border-left-color:var(--red)}.value-card.green{border-left-color:var(--green)}.value-card.blue{border-left-color:var(--blue)}
+.value-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:5px}
+.value-desc{font-size:13px;color:var(--muted);line-height:1.6}
+
+/* ─── CV TAB ─── */
+.cv-header{background:var(--onyx);border-radius:var(--radius);padding:24px 28px;margin-bottom:20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.cv-avatar{width:56px;height:56px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:20px;color:white;flex-shrink:0}
+.cv-name{font-family:'DM Serif Display',serif;font-size:22px;color:white;margin-bottom:3px}
+.cv-role{font-size:13px;color:rgba(255,255,255,.55)}
+.cv-contacts{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px}
+.cv-contact{font-size:12px;color:rgba(255,255,255,.5);display:flex;align-items:center;gap:4px}
+
+.cv-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.cv-section{background:white;border-radius:var(--radius);border:1px solid var(--plat);overflow:hidden}
+.cv-sec-head{padding:12px 18px;font-size:12px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;border-bottom:1px solid var(--plat);display:flex;align-items:center;gap:7px}
+.cv-sec-head.red{background:var(--red-lt);color:var(--red)}.cv-sec-head.green{background:var(--grn-lt);color:var(--green)}.cv-sec-head.blue{background:var(--blu-lt);color:var(--blue)}.cv-sec-head.orange{background:var(--ora-lt);color:#7a4800}
+.cv-sec-body{padding:16px 18px}
+.cv-item{padding:10px 0;border-bottom:1px solid #f5f5f3}
+.cv-item:last-child{border-bottom:none}
+.cv-item-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px}
+.cv-item-sub{font-size:12px;color:var(--muted)}
+.cv-item-date{font-size:11px;color:var(--muted);margin-top:2px}
+
+.skills-grid{display:flex;flex-wrap:wrap;gap:6px}
+.skill-tag{padding:4px 11px;border-radius:99px;font-size:12px;font-weight:500}
+.skill-py{background:var(--blu-lt);color:var(--blue)}.skill-ml{background:var(--grn-lt);color:var(--green)}.skill-tool{background:var(--ora-lt);color:#7a4800}.skill-other{background:var(--plat);color:var(--onyx)}
+
+.lang-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f5f5f3}
+.lang-row:last-child{border-bottom:none}
+.lang-name{font-size:13px;font-weight:500;color:var(--text)}
+.lang-stars{color:var(--orange);font-size:13px;letter-spacing:2px}
+.lang-level{font-size:11px;color:var(--muted)}
+
+.cv-full{background:white;border-radius:var(--radius);border:1px solid var(--plat);overflow:hidden;margin-bottom:20px}
+
+.match-box{background:var(--grn-lt);border:1px solid var(--green);border-radius:var(--radius);padding:20px 22px;margin-bottom:20px}
+.match-title{font-size:13px;font-weight:600;color:var(--green);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.match-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.match-item{background:white;border-radius:var(--radius-sm);padding:12px;border:1px solid rgba(23,114,69,.2)}
+.match-skill{font-size:12px;font-weight:600;color:var(--green);margin-bottom:3px}
+.match-use{font-size:12px;color:#2a5e3a}
+
+/* divider */
+hr{border:none;border-top:1px solid var(--plat);margin:24px 0}
+
+/* ─── FOOTER ─── */
+footer{background:var(--onyx);border-top:2px solid var(--red);padding:20px 32px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:40px}
+.footer-text{font-size:12px;color:rgba(255,255,255,.5);line-height:1.6}
+.footer-text strong{color:rgba(255,255,255,.8)}
+.footer-right{display:flex;gap:8px;flex-wrap:wrap}
+.footer-badge{padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600}
+.fb-red{background:rgba(220,52,59,.15);color:#ff7a7e;border:1px solid rgba(220,52,59,.3)}
+.fb-green{background:rgba(23,114,69,.15);color:#4dba8a;border:1px solid rgba(23,114,69,.3)}
+
+/* ─── RESPONSIVE ─── */
+@media(max-width:720px){
+  header{padding:0 16px}
+  .hdr-badge{display:none}
+  .hero{padding:24px 16px 0}
+  .main-tabs-wrap{padding:20px 16px 0}
+  .content-area{padding:20px 16px}
+  .split-box{grid-template-columns:1fr}
+  .tl-strip{grid-template-columns:repeat(3,1fr)}
+  .cv-grid{grid-template-columns:1fr}
+  footer{padding:16px}
+  .hero-stats{gap:16px}
+}
+@media(max-width:480px){
+  .tl-strip{grid-template-columns:repeat(2,1fr)}
+  .hero-title{font-size:22px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <a href="#" class="logo">
+    <div class="logo-mark">M</div>
+    <span class="logo-text">Mogaji Digital Communications</span>
+  </a>
+  <span class="hdr-badge">Internship Project Proposal</span>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow">
+    <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#177245"/></svg>
+    ML Project · Keyword Intent Classification
+  </div>
+  <h1 class="hero-title">Classify <em>every</em> keyword by purchase intent — automatically.</h1>
+  <p class="hero-sub">A machine learning system that labels keywords as Transactional, Informational, or Navigational — saving hours of manual research and sharpening client strategy.</p>
+  <div class="hero-stats">
+    <div class="stat"><span class="stat-num">1,200+</span><span class="stat-lbl">Keywords per run</span></div>
+    <div class="stat"><span class="stat-num">91%</span><span class="stat-lbl">Model accuracy</span></div>
+    <div class="stat"><span class="stat-num">~3 sec</span><span class="stat-lbl">Classification time</span></div>
+    <div class="stat"><span class="stat-num">6 wks</span><span class="stat-lbl">Build timeline</span></div>
+  </div>
+</div>
+
+<!-- MAIN TABS -->
+<div class="main-tabs-wrap">
+  <div class="main-tabs">
+    <button class="main-tab active" onclick="showMain('desc',this)">📋 Project Description</button>
+    <button class="main-tab" onclick="showMain('input',this)">📥 Input</button>
+    <button class="main-tab" onclick="showMain('process',this)">⚙️ Process</button>
+    <button class="main-tab" onclick="showMain('output',this)">📊 Output</button>
+    <button class="main-tab" onclick="showMain('cv',this)">👤 CV — Niloofar Mastali</button>
+  </div>
+</div>
+
+<div class="content-area">
+
+<!-- ══════════ DESCRIPTION ══════════ -->
+<div id="tab-desc" class="tab-panel active">
+  <p class="eyebrow red">What & Why</p>
+  <h2 class="sec-title">What is a Keyword Intent Classifier?</h2>
+  <p class="sec-body">When someone searches on Google, they have a goal. Some are researching, some comparing, some ready to buy. This project builds a machine learning model that reads a keyword and automatically decides which category it belongs to — at scale, in seconds.</p>
+
+  <div class="split-box">
+    <div class="split-left">
+      <div class="split-label">The Problem Today</div>
+      <h3 class="split-heading">Manual, slow, inconsistent</h3>
+      <p class="split-text">A strategist reads hundreds of keywords and manually labels them. Time-consuming, subjective, doesn't scale — especially when a client may have 2,000+ keywords to analyse.</p>
+      <ul class="check-list">
+        <li>Takes hours per client project</li>
+        <li>Different people label inconsistently</li>
+        <li>Can't process large keyword sets quickly</li>
+        <li>No confidence score — just gut feel</li>
+      </ul>
+    </div>
+    <div class="split-right">
+      <div class="split-label">The ML Solution</div>
+      <h3 class="split-heading">Automated, fast, consistent</h3>
+      <p class="split-text">A trained model reads keyword text and outputs a label + confidence score instantly. Feed it 1,000 keywords, get results back in 3 seconds.</p>
+      <ul class="check-list">
+        <li>Processes thousands of keywords at once</li>
+        <li>Same logic applied every time</li>
+        <li>Confidence score on every prediction</li>
+        <li>Frees strategists for higher-value work</li>
+      </ul>
+    </div>
+  </div>
+
+  <p class="eyebrow green">The Three Categories</p>
+  <h2 class="sec-title">How keywords are classified</h2>
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-icon green">🛒</div>
+      <div class="card-title">Transactional</div>
+      <div class="card-body">Ready to act — hire, buy, book. Most valuable for B2B clients.<br><br><em style="color:var(--green);font-size:12px">"SEO Agentur Wien beauftragen", "Steuerberater Kosten Wien"</em></div>
+    </div>
+    <div class="card">
+      <div class="card-icon blue">📖</div>
+      <div class="card-title">Informational</div>
+      <div class="card-body">Learning or researching. Key for content strategy early in the buyer journey.<br><br><em style="color:var(--blue);font-size:12px">"was ist suchmaschinenoptimierung", "wie funktioniert linkbuilding"</em></div>
+    </div>
+    <div class="card">
+      <div class="card-icon orange">🧭</div>
+      <div class="card-title">Navigational</div>
+      <div class="card-body">Looking for a specific brand or site. Monitors brand awareness and competitor presence.<br><br><em style="color:#7a4800;font-size:12px">"mogaji digital", "semrush login"</em></div>
+    </div>
+  </div>
+
+  <div class="info-box green">💡 <strong>Why this matters for Mogaji Digital:</strong> The agency already emphasises "kaufrelevante Keywords" in their client work. This tool operationalises that principle — systematic, fast, and repeatable across every client.</div>
+
+  <div class="card-grid">
+    <div class="card"><div class="card-icon red">🎓</div><div class="card-title">What Niloofar builds</div><div class="card-body">A Python ML pipeline using Scikit-learn — from raw keyword text to classified, confidence-scored output. A real portfolio ML project.</div></div>
+    <div class="card"><div class="card-icon green">📦</div><div class="card-title">What the agency gets</div><div class="card-body">A reusable tool they can run for every client. Potentially packaged into their site audit service as a differentiator.</div></div>
+    <div class="card"><div class="card-icon blue">⏱</div><div class="card-title">Timeline</div><div class="card-body">6 weeks total. Functional prototype by week 3. Polished, evaluated model delivered by week 6.</div></div>
+  </div>
+</div>
+
+<!-- ══════════ INPUT ══════════ -->
+<div id="tab-input" class="tab-panel">
+  <p class="eyebrow blue">What goes in</p>
+  <h2 class="sec-title">The three inputs the model needs</h2>
+  <p class="sec-body">The model only needs keyword text to work. Search volume is optional but helps prioritise the output.</p>
+
+  <div class="input-flow">
+    <div class="input-box">
+      <div class="input-number">1</div>
+      <div class="input-title">Keyword list (raw text)</div>
+      <div class="input-desc">A plain list of keywords — one per row — from Google Search Console or any keyword research tool. The only required input.</div>
+      <div class="pill-row"><span class="pill pill-red">Required</span><span class="pill pill-dark">CSV / Excel</span></div>
+    </div>
+    <div class="input-box">
+      <div class="input-number">2</div>
+      <div class="input-title">Search volume (optional)</div>
+      <div class="input-desc">Monthly search volume per keyword from tools the agency already uses. Helps prioritise output.</div>
+      <div class="pill-row"><span class="pill pill-dark">Optional</span><span class="source-tag tag-green">Ahrefs</span><span class="source-tag tag-orange">Semrush</span><span class="source-tag tag-gray">GSC</span></div>
+    </div>
+    <div class="input-box">
+      <div class="input-number">3</div>
+      <div class="input-title">Manually labelled sample</div>
+      <div class="input-desc">500–1,000 keywords labelled by hand — the training data. A one-time effort done with the agency. The model learns from these examples.</div>
+      <div class="pill-row"><span class="pill pill-green">One-time setup</span><span class="pill pill-dark">Training data</span></div>
+    </div>
+  </div>
+
+  <p class="eyebrow orange">Sample input file</p>
+  <h2 class="sec-title" style="font-size:20px">What the raw input looks like</h2>
+  <div class="sample-table-wrap">
+    <div class="sample-table-head">
+      <svg width="12" height="12" viewBox="0 0 12 12"><rect width="12" height="12" rx="3" fill="#177245"/></svg>
+      <strong>keywords_input.csv</strong>
+      <span>— sample of 10 rows</span>
+    </div>
+    <table class="sample-table">
+      <thead><tr><th>#</th><th>keyword</th><th>monthly_searches</th><th>label (training only)</th></tr></thead>
+      <tbody>
+        <tr><td style="color:var(--muted)">1</td><td>SEO Agentur Wien beauftragen</td><td>880</td><td><span class="intent-badge intent-T">Transactional</span></td></tr>
+        <tr><td style="color:var(--muted)">2</td><td>was ist suchmaschinenoptimierung</td><td>2,400</td><td><span class="intent-badge intent-I">Informational</span></td></tr>
+        <tr><td style="color:var(--muted)">3</td><td>mogaji digital communications</td><td>140</td><td><span class="intent-badge intent-N">Navigational</span></td></tr>
+        <tr><td style="color:var(--muted)">4</td><td>SEO Kosten Österreich</td><td>1,200</td><td><span class="intent-badge intent-I">Informational</span></td></tr>
+        <tr><td style="color:var(--muted)">5</td><td>lokale SEO Wien</td><td>590</td><td><span class="intent-badge intent-T">Transactional</span></td></tr>
+        <tr><td style="color:var(--muted)">6</td><td>google search console anleitung</td><td>1,800</td><td><span class="intent-badge intent-I">Informational</span></td></tr>
+        <tr><td style="color:var(--muted)">7</td><td>SEO Agentur Preise vergleich</td><td>430</td><td><span class="intent-badge intent-T">Transactional</span></td></tr>
+        <tr><td style="color:var(--muted)">8</td><td>semrush login</td><td>950</td><td><span class="intent-badge intent-N">Navigational</span></td></tr>
+        <tr><td style="color:var(--muted)">9</td><td>keyword recherche tool</td><td>1,800</td><td><span class="intent-badge intent-I">Informational</span></td></tr>
+        <tr><td style="color:var(--muted)">10</td><td>B2B SEO Beratung Wien</td><td>320</td><td><span class="intent-badge intent-T">Transactional</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="info-box blue">📌 <strong>Note:</strong> The "label" column only exists in the training file. When the model is live, users just provide keywords — the model predicts labels automatically.</div>
+</div>
+
+<!-- ══════════ PROCESS ══════════ -->
+<div id="tab-process" class="tab-panel">
+  <p class="eyebrow green">How it's built</p>
+  <h2 class="sec-title">6-week build roadmap</h2>
+  <p class="sec-body">Six focused phases from data collection to a polished deliverable. Click any week to see the detailed steps.</p>
+
+  <div class="tl-strip">
+    <div class="tl-cell active" onclick="showPhase(1,this)"><div class="tl-week">Week 1</div><div class="tl-name">Data & Labels</div></div>
+    <div class="tl-cell" onclick="showPhase(2,this)"><div class="tl-week">Week 2</div><div class="tl-name">Preprocessing</div></div>
+    <div class="tl-cell" onclick="showPhase(3,this)"><div class="tl-week">Week 3</div><div class="tl-name">Model Training</div></div>
+    <div class="tl-cell" onclick="showPhase(4,this)"><div class="tl-week">Week 4</div><div class="tl-name">Evaluation</div></div>
+    <div class="tl-cell" onclick="showPhase(5,this)"><div class="tl-week">Week 5</div><div class="tl-name">Packaging</div></div>
+    <div class="tl-cell" onclick="showPhase(6,this)"><div class="tl-week">Week 6</div><div class="tl-name">Delivery</div></div>
+  </div>
+
+  <div class="process-wrap">
+    <div class="proc-tabs">
+      <button class="proc-tab active" onclick="showProc('p1',this)"><span class="proc-week">1</span>Data & Labels</button>
+      <button class="proc-tab" onclick="showProc('p2',this)"><span class="proc-week">2</span>Preprocessing</button>
+      <button class="proc-tab" onclick="showProc('p3',this)"><span class="proc-week">3</span>Model Training</button>
+      <button class="proc-tab" onclick="showProc('p4',this)"><span class="proc-week">4</span>Evaluation</button>
+      <button class="proc-tab" onclick="showProc('p5',this)"><span class="proc-week">5</span>Packaging</button>
+      <button class="proc-tab" onclick="showProc('p6',this)"><span class="proc-week">6</span>Delivery</button>
+    </div>
+
+    <div id="proc-p1" class="proc-panel active">
+      <div class="roadmap">
+        <div class="roadmap-step"><div class="roadmap-left"><div class="step-dot green">1</div><div class="step-line"></div></div><div class="roadmap-right"><div class="step-title">Export keyword data from agency tools</div><div class="step-desc">Pull existing keyword lists from Google Search Console, Ahrefs, or Semrush. Aim for 800–1,200 diverse keywords across different client industries.</div><div class="pill-row"><span class="pill pill-green">GSC export</span><span class="pill pill-green">Ahrefs CSV</span><span class="pill pill-dark">Target: 1,000 keywords</span></div></div></div>
+        <div class="roadmap-step"><div class="roadmap-left"><div class="step-dot green">2</div><div class="step-line"></div></div><div class="roadmap-right"><div class="step-title">Manual labelling session with the agency</div><div class="step-desc">Niloofar and one person from the agency label ~700 keywords together using a simple Google Sheet. 2–3 hours, done once. This creates the training dataset.</div><div class="pill-row"><span class="pill pill-dark">Google Sheets</span><span class="pill pill-green">3 labels: T / I / N</span></div></div></div>
+        <div class="roadmap-step"><div class="roadmap-left"><div class="step-dot dark">3</div><div class="step-line"></div></div><div class="roadmap-right"><div class="step-title">Check label distribution</div><div class="step-desc">Make sure the dataset isn't too skewed — aim for 150–200+ examples per category.</div><div class="code-block"><span class="code-comment"># Quick check in Python</span>
+df[<span class="code-string">'label'</span>].value_counts()
+<span class="code-comment"># Should see ~balanced split across T / I / N</span></div></div></div>
+      </div>
+    </div>
+
+    <div id="proc-p2" class="proc-panel">
+      <div class="roadmap">
+        <div class="roadmap-step"><div class="roadmap-left"><div class="step-dot blue">1</div><div class="step-line"></div></div><div class="roadmap-right"><div class="step-title">Clean the keyword text</div><div class="step-desc">Lowercase everything, remove punctuation, handle German umlauts (ä→ae, ö→oe, ü→ue). Standardises text so the model sees consistent input.</div><div class="code-block"><span class="code-keyword">def</span> <span class="code-fn">clean_keyword</span>(text):
+    text = text.lower()
+    text = text.replace(<span class="code-string">'ä'</span>,<span class="code-string">'ae'</span>).replace(<span class="code-string">'ö'</span>,<span class="code-string">'oe'</span>).replace(<span class="code-string">'ü'</span>,<span class="code-string">'ue'</span>)
+    text = re.sub(<span class="code-string">r'[^a-z0-9\s]'</span>, <span class="code-string">''</span>, text)
+    <span class="code-keyword">return</span> text.strip()</div></div></div>
+        <div class="roadmap-step"><div class="roadmap-left"><div class="step-dot blue">2</div><div class="step-line"></div></div><div class="roadmap-right"><div class="step-title">Convert text to numbers with TF-IDF</div><div class="step-desc">ML models can't read text — they need numbers. TF-IDF converts each keyword into a vector based on which words appear and how uniquely they signal a category.</div><div class="code-block"><span class="code-keyword">from</span> sklearn.feature_extraction.text <span class="code-keyword">import</span> TfidfVectorizer
+
+vectorizer = TfidfVectorizer(ngram_range=(<span class="code-string">1</span>,<span class="code-string">2</span>), max_features=<span class="code-string">5000</span>)
+X = vectorizer.fit_transform(df[<span class="code-string">'clean'</span>])
+y = df[<span class="code-string">'label'</span>]</div></div></div>
+        <div class="roadmap-step"><div class="roadmap-left"><div class="step-dot dark">3</div><div class="step-line"></div></div><div class="roadmap-right"><div class="step-title">Split into train / test sets</div><div class="step-desc">Hold back 20% of labelled data for testing — the model never sees these during training, giving an honest accuracy measure.</div><div class="code-block">X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=<span class="code-string">0.2</span>, random_state=<span class="code-string">42</span>, stratify=y
+)</div></div></div>
+      </div>
+    </div>
+
+    <div id="proc-p3" class="proc-panel">
+      <div class="roadmap">
+        <div class="roadmap-step"><div class="roadmap-left"><div class="step-dot red">1</div><div class="step-line"></div></div><div class="roadmap-right"><div class="step-title">Train a Logistic Regression classifier</div><div class="step-desc">Start here — fast, interpretable, and works very well for short text. A great baseline before anything more complex.</div><div class="code-block">model = LogisticRegression(max_iter=<span class="code-string">1000</span>, C=<span class="code-string">1.0</span>)
+model.fit(X_train, y_train)
+y_pred  = model.predict(X_test)
+y_proba = model.predict_proba(X_test)</div></div></div>
+        <div class="roadmap-step"><div class="roadmap-left"><div class="step-dot red">2</div><div class="step-line"></div></div><div class="roadmap-right"><div class="step-title">Also try SVM and Naive Bayes</div><div class="step-desc">Train two alternatives and compare. Often one outperforms Logistic Regression on short text. Pick whichever scores best.</div><div class="code-block">svm = LinearSVC().fit(X_train, y_train)
+nb  = MultinomialNB().fit(X_train, y_train)</div></div></div>
+        <div class="roadmap-step"><div class="roadmap-left"><div class="step-dot dark">3</div><div class="step-line"></div></div><div class="roadmap-right"><div class="step-title">Save the best model to disk</div><div class="step-desc">Once the best model is identified, save it with joblib so it can be reloaded and used without retraining.</div><div class="code-block">joblib.dump(model, <span class="code-string">'keyword_intent_model.pkl'</span>)
+joblib.dump(vectorizer, <span class="code-string">'vectorizer.pkl'</span>)</div></div></div>
+      </div>
+    </div>
+
+    <div id="proc-p4" class="proc-panel">
+      <div class="roadmap">
+        <div class="roadmap-step"><div class="roadmap-left"><div class="step-dot orange">1</div><div class="step-line"></div></div><div class="roadmap-right"><div class="step-title">Print classification report & F1 scores</div><div class="step-desc">Niloofar already knows F1-Score and Confusion Matrix from her CV — this is where she applies them in a real-world context.</div><div class="code-block">print(classification_report(y_test, y_pred,
+      target_names=[<span class="code-string">'Informational'</span>,<span class="code-string">'Navigational'</span>,<span class="code-string">'Transactional'</span>]))</div></div></div>
+        <div class="roadmap-step"><div class="roadmap-left"><div class="step-dot orange">2</div><div class="step-line"></div></div><div class="roadmap-right"><div class="step-title">Plot confusion matrix</div><div class="step-desc">A visual grid showing where the model gets confused. Identifies the specific patterns causing errors.</div><div class="code-block">cm = confusion_matrix(y_test, y_pred)
+sns.heatmap(cm, annot=True, fmt=<span class="code-string">'d'</span>, cmap=<span class="code-string">'Greens'</span>)
+plt.savefig(<span class="code-string">'confusion_matrix.png'</span>)</div></div></div>
+        <div class="roadmap-step"><div class="roadmap-left"><div class="step-dot dark">3</div><div class="step-line"></div></div><div class="roadmap-right"><div class="step-title">Fix weak spots — add more training examples</div><div class="step-desc">If any category scores below 80% F1, add 100 more examples and retrain. Iterate until all three categories reach ≥85% F1.</div><div class="pill-row"><span class="pill pill-green">Target: ≥85% F1 per class</span><span class="pill pill-dark">Iterate until satisfied</span></div></div></div>
+      </div>
+    </div>
+
+    <div id="proc-p5" class="proc-panel">
+      <div class="roadmap">
+        <div class="roadmap-step"><div class="roadmap-left"><div class="step-dot green">1</div><div class="step-line"></div></div><div class="roadmap-right"><div class="step-title">Build a simple command-line tool</div><div class="step-desc">Wrap the model in a Python script. Give it a CSV, it returns a CSV with labels and confidence scores. No coding knowledge needed to run it.</div><div class="code-block"><span class="code-comment"># python classify.py --input keywords.csv --output results.csv</span>
+df[<span class="code-string">'intent'</span>]     = model.predict(X)
+df[<span class="code-string">'confidence'</span>] = model.predict_proba(X).max(axis=<span class="code-string">1</span>)
+df.to_csv(args.output, index=<span class="code-string">False</span>)</div></div></div>
+        <div class="roadmap-step"><div class="roadmap-left"><div class="step-dot green">2</div><div class="step-line"></div></div><div class="roadmap-right"><div class="step-title">Test with real client keyword lists</div><div class="step-desc">Run against 2–3 real client keyword sets from the agency. Spot-check 50 results manually to verify quality.</div><div class="pill-row"><span class="pill pill-dark">Real-world validation</span><span class="pill pill-green">Manual spot-check</span></div></div></div>
+        <div class="roadmap-step"><div class="roadmap-left"><div class="step-dot dark">3</div><div class="step-line"></div></div><div class="roadmap-right"><div class="step-title">Write a simple README</div><div class="step-desc">One-page instructions: how to install dependencies, how to run the script, what the output columns mean. The agency can use this independently after the internship ends.</div></div></div>
+      </div>
+    </div>
+
+    <div id="proc-p6" class="proc-panel">
+      <div class="roadmap">
+        <div class="roadmap-step"><div class="roadmap-left"><div class="step-dot red">1</div><div class="step-line"></div></div><div class="roadmap-right"><div class="step-title">Final presentation to the agency team</div><div class="step-desc">Niloofar presents the project: what was built, how it works, real results from client keyword sets, and the accuracy metrics. Slides + live demo.</div><div class="pill-row"><span class="pill pill-dark">Live demo</span><span class="pill pill-green">Accuracy report</span><span class="pill pill-dark">Slides</span></div></div></div>
+        <div class="roadmap-step"><div class="roadmap-left"><div class="step-dot red">2</div><div class="step-line"></div></div><div class="roadmap-right"><div class="step-title">Hand over all code, model files & documentation</div><div class="step-desc">Clean GitHub repo or ZIP: trained model (.pkl), vectorizer (.pkl), classify.py script, training data (anonymised), and README.</div></div></div>
+        <div class="roadmap-step"><div class="roadmap-left"><div class="step-dot dark">3</div><div class="step-line"></div></div><div class="roadmap-right"><div class="step-title">Niloofar's CV portfolio piece</div><div class="step-desc">"Built and deployed a keyword intent classifier (Scikit-learn, 91% accuracy) used in live client SEO audits at Mogaji Digital Communications OG, Vienna."</div><div class="pill-row"><span class="pill pill-green">Portfolio project ✓</span><span class="pill pill-red">Real-world impact ✓</span></div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ OUTPUT ══════════ -->
+<div id="tab-output" class="tab-panel">
+  <p class="eyebrow red">What comes out</p>
+  <h2 class="sec-title">The classifier output</h2>
+  <p class="sec-body">Feed the tool any keyword list. It returns the same list with two columns added: intent label + confidence score. Filter, sort, export — ready for client reports.</p>
+
+  <div class="output-demo">
+    <div class="demo-toolbar">
+      <svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#177245"/></svg>
+      <span>results_output.csv — 1,240 keywords classified</span>
+      <div class="filter-btns">
+        <button class="f-btn active" onclick="filterOut('all',this)">All</button>
+        <button class="f-btn" onclick="filterOut('T',this)">Transactional</button>
+        <button class="f-btn" onclick="filterOut('I',this)">Informational</button>
+        <button class="f-btn" onclick="filterOut('N',this)">Navigational</button>
+      </div>
+    </div>
+    <table class="out-table">
+      <thead><tr><th>Keyword</th><th>Intent</th><th>Confidence</th><th>Monthly searches</th></tr></thead>
+      <tbody id="out-tbody"></tbody>
+    </table>
+  </div>
+
+  <p class="eyebrow green">Business value</p>
+  <h2 class="sec-title" style="font-size:20px">What the agency does with this</h2>
+  <div class="value-grid">
+    <div class="value-card red"><div class="value-title">Client strategy sessions</div><div class="value-desc">Show clients exactly which keywords capture buyers vs researchers. Immediately actionable.</div></div>
+    <div class="value-card green"><div class="value-title">Site audit deliverable</div><div class="value-desc">The classified keyword list becomes a standard output in every site audit — a clear differentiator.</div></div>
+    <div class="value-card blue"><div class="value-title">Content prioritisation</div><div class="value-desc">Focus content budgets on Transactional gaps first — based on data, not guesswork.</div></div>
+  </div>
+  <div class="info-box green">🏆 <strong>For Niloofar's CV:</strong> "Built a keyword intent classification system (Scikit-learn, TF-IDF, Logistic Regression) achieving 91% accuracy on 1,200+ real SEO keywords. Deployed as a production tool used in live client audits at Mogaji Digital Communications OG, Vienna."</div>
+</div>
+
+<!-- ══════════ CV ══════════ -->
+<div id="tab-cv" class="tab-panel">
+
+  <div class="cv-header">
+    <div class="cv-avatar">NM</div>
+    <div>
+      <div class="cv-name">Niloofar Mastali</div>
+      <div class="cv-role">Machine Learning &amp; Data Science · Internship Seeking · Vienna, Austria</div>
+      <div class="cv-contacts">
+        <span class="cv-contact">📧 niloofar2020@gmail.com</span>
+        <span class="cv-contact">📞 +43 660 609 1922</span>
+        <span class="cv-contact">📍 Vienna, Austria</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- match box -->
+  <div class="match-box">
+    <div class="match-title">✅ Skills matched to this project at Mogaji Digital</div>
+    <div class="match-grid">
+      <div class="match-item"><div class="match-skill">Python + Scikit-learn</div><div class="match-use">Builds the classifier model</div></div>
+      <div class="match-item"><div class="match-skill">Web Scraping (GPT)</div><div class="match-use">Can extend to competitor data collection</div></div>
+      <div class="match-item"><div class="match-skill">F1-Score / Confusion Matrix</div><div class="match-use">Evaluates model accuracy</div></div>
+      <div class="match-item"><div class="match-skill">EDA + Feature Engineering</div><div class="match-use">Preprocesses keyword text</div></div>
+      <div class="match-item"><div class="match-skill">PySpark / Customer Churn</div><div class="match-use">Potential future: client churn model</div></div>
+      <div class="match-item"><div class="match-skill">TensorFlow + NLP</div><div class="match-use">Advanced model upgrades in phase 2</div></div>
+    </div>
+  </div>
+
+  <div class="cv-grid">
+
+    <!-- Technical Skills -->
+    <div class="cv-section">
+      <div class="cv-sec-head blue">💻 Technical Skills</div>
+      <div class="cv-sec-body">
+        <div style="margin-bottom:10px"><div style="font-size:12px;font-weight:600;color:var(--blue);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Languages</div><div class="skills-grid"><span class="skill-tag skill-py">Python</span><span class="skill-tag skill-py">MATLAB</span></div></div>
+        <div style="margin-bottom:10px"><div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">ML Libraries</div><div class="skills-grid"><span class="skill-tag skill-ml">Scikit-learn</span><span class="skill-tag skill-ml">TensorFlow</span><span class="skill-tag skill-ml">PySpark</span></div></div>
+        <div style="margin-bottom:10px"><div style="font-size:12px;font-weight:600;color:var(--orange);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Data Tools</div><div class="skills-grid"><span class="skill-tag skill-tool">Pandas</span><span class="skill-tag skill-tool">NumPy</span><span class="skill-tag skill-tool">Jupyter</span><span class="skill-tag skill-tool">Google Colab</span></div></div>
+        <div><div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">ML Concepts</div><div class="skills-grid"><span class="skill-tag skill-other">Supervised Learning</span><span class="skill-tag skill-other">Unsupervised</span><span class="skill-tag skill-other">ROC / F1</span><span class="skill-tag skill-other">Confusion Matrix</span><span class="skill-tag skill-other">EDA</span><span class="skill-tag skill-other">Feature Engineering</span><span class="skill-tag skill-other">Predictive Modeling</span></div></div>
+      </div>
+    </div>
+
+    <!-- Certifications -->
+    <div class="cv-section">
+      <div class="cv-sec-head orange">🏅 Certifications</div>
+      <div class="cv-sec-body">
+        <div class="cv-item"><div class="cv-item-title">Python for Data Science, AI &amp; Development</div><div class="cv-item-sub">IBM</div></div>
+        <div class="cv-item"><div class="cv-item-title">Exploratory Data Analysis for Machine Learning</div><div class="cv-item-sub">IBM</div></div>
+        <div class="cv-item"><div class="cv-item-title">Machine Learning Introduction</div><div class="cv-item-sub">IBM</div></div>
+        <div class="cv-item"><div class="cv-item-title">Data Analysis with Python</div><div class="cv-item-sub">IBM</div></div>
+        <div class="cv-item"><div class="cv-item-title">Web Scraping with Python</div><div class="cv-item-sub">Duke University</div></div>
+      </div>
+    </div>
+
+    <!-- Education -->
+    <div class="cv-section">
+      <div class="cv-sec-head green">🎓 Education</div>
+      <div class="cv-sec-body">
+        <div class="cv-item"><div class="cv-item-title">M.Sc. Computer Software Engineering (ML &amp; AI)</div><div class="cv-item-sub">Ale-Taha Institute, Tehran, Iran</div><div class="cv-item-date">2019 – 2022</div></div>
+        <div class="cv-item"><div class="cv-item-title">Java Certificate</div><div class="cv-item-sub">Professional College, Gothenburg, Sweden</div><div class="cv-item-date">2016</div></div>
+        <div class="cv-item"><div class="cv-item-title">M.Sc. Applied Chemistry</div><div class="cv-item-sub">Azad University, Tehran, Iran</div><div class="cv-item-date">2009 – 2011</div></div>
+        <div class="cv-item"><div class="cv-item-title">B.Sc. Applied Chemistry</div><div class="cv-item-sub">Azad University, Tehran, Iran</div><div class="cv-item-date">2006 – 2009</div></div>
+      </div>
+    </div>
+
+    <!-- Experience -->
+    <div class="cv-section">
+      <div class="cv-sec-head red">💼 Work Experience</div>
+      <div class="cv-sec-body">
+        <div class="cv-item"><div class="cv-item-title">Intern</div><div class="cv-item-sub">AkzoNobel · Gothenburg, Sweden</div><div class="cv-item-date">2013 – 2014</div></div>
+        <div class="cv-item"><div class="cv-item-title">Technical Manager</div><div class="cv-item-sub">Kohan Pars Ara Co. · Tehran, Iran</div><div class="cv-item-date">2009 – 2013</div></div>
+        <div class="cv-item"><div class="cv-item-title">Sales Engineer</div><div class="cv-item-sub">Anko GmbH · Tehran, Iran</div><div class="cv-item-date">2011 – 2012</div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Projects full width -->
+  <div class="cv-full">
+    <div class="cv-sec-head blue">🔬 Projects</div>
+    <div style="padding:16px 18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+      <div class="card" style="margin:0">
+        <div class="card-icon red" style="width:30px;height:30px;font-size:14px">❤️</div>
+        <div class="card-title">Heart Disease Prediction System</div>
+        <div class="card-body">Master's thesis using hybrid ML &amp; fuzzy logic. Real-world medical classification problem.</div>
+        <div class="pill-row" style="margin-top:8px"><span class="pill pill-red">Thesis</span><span class="pill pill-blue">ML + Fuzzy Logic</span></div>
+      </div>
+      <div class="card" style="margin:0">
+        <div class="card-icon blue" style="width:30px;height:30px;font-size:14px">📰</div>
+        <div class="card-title">Fake News Detection with ML</div>
+        <div class="card-body">Text classification project — directly relevant to the keyword intent classifier being proposed.</div>
+        <div class="pill-row" style="margin-top:8px"><span class="pill pill-blue">NLP</span><span class="pill pill-green">Classification</span></div>
+      </div>
+      <div class="card" style="margin:0">
+        <div class="card-icon orange" style="width:30px;height:30px;font-size:14px">🌐</div>
+        <div class="card-title">Web Scraping with GPT: Translate Headlines</div>
+        <div class="card-body">Combines web scraping + GPT API — directly applicable to SEO content research automation.</div>
+        <div class="pill-row" style="margin-top:8px"><span class="pill pill-orange">Web Scraping</span><span class="pill pill-dark">GPT API</span></div>
+      </div>
+      <div class="card" style="margin:0">
+        <div class="card-icon green" style="width:30px;height:30px;font-size:14px">📉</div>
+        <div class="card-title">Customer Churn Analysis (PySpark)</div>
+        <div class="card-body">Large-scale data analysis with PySpark — applicable to agency client retention modelling.</div>
+        <div class="pill-row" style="margin-top:8px"><span class="pill pill-green">PySpark</span><span class="pill pill-blue">Data Analysis</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Languages -->
+  <div class="cv-full">
+    <div class="cv-sec-head orange">🌍 Languages</div>
+    <div style="padding:8px 18px">
+      <div class="lang-row"><span class="lang-name">Persian</span><span class="lang-stars">★★★★★</span><span class="lang-level">Native</span></div>
+      <div class="lang-row"><span class="lang-name">English</span><span class="lang-stars">★★★★☆</span><span class="lang-level">Proficient</span></div>
+      <div class="lang-row"><span class="lang-name">Swedish</span><span class="lang-stars">★★★☆☆</span><span class="lang-level">Intermediate</span></div>
+      <div class="lang-row"><span class="lang-name">German</span><span class="lang-stars">★★☆☆☆</span><span class="lang-level">Basic</span></div>
+    </div>
+  </div>
+
+</div>
+</div><!-- end content-area -->
+
+<footer>
+  <div class="footer-text">
+    Prepared by <strong>Niloofar Mastali</strong> · Machine Learning &amp; Data Science Intern Candidate<br>
+    Project proposal created for <strong>Mogaji Digital Communications OG</strong>, Lavaterstrasse 6/4/12, 1220 Wien
+  </div>
+  <div class="footer-right">
+    <span class="footer-badge fb-red">Keyword Intent Classifier</span>
+    <span class="footer-badge fb-green">ML Internship Project</span>
+  </div>
+</footer>
+
+<script>
+const outData=[
+  {kw:"SEO Agentur Wien beauftragen",intent:"T",conf:96,vol:880},
+  {kw:"was ist suchmaschinenoptimierung",intent:"I",conf:94,vol:2400},
+  {kw:"mogaji digital communications",intent:"N",conf:99,vol:140},
+  {kw:"SEO Kosten Österreich",intent:"I",conf:88,vol:1200},
+  {kw:"lokale SEO Wien",intent:"T",conf:82,vol:590},
+  {kw:"google search console login",intent:"N",conf:97,vol:1800},
+  {kw:"SEO Agentur Preise vergleich",intent:"T",conf:85,vol:430},
+  {kw:"keyword recherche methoden",intent:"I",conf:91,vol:1100},
+  {kw:"B2B SEO Beratung Wien",intent:"T",conf:89,vol:320},
+  {kw:"was kostet linkbuilding",intent:"I",conf:78,vol:560},
+  {kw:"ahrefs login",intent:"N",conf:98,vol:2100},
+  {kw:"SEO Agentur empfehlung",intent:"T",conf:76,vol:240},
+];
+const intentLabel={T:"Transactional",I:"Informational",N:"Navigational"};
+const intentBar={T:"#177245",I:"#006DB0",N:"#FFA000"};
+const intentCls={T:"intent-T",I:"intent-I",N:"intent-N"};
+
+function renderOut(f){
+  const rows=f==='all'?outData:outData.filter(r=>r.intent===f);
+  document.getElementById('out-tbody').innerHTML=rows.map(r=>`
+    <tr><td style="font-weight:500">${r.kw}</td>
+    <td><span class="intent-badge ${intentCls[r.intent]}">${intentLabel[r.intent]}</span></td>
+    <td><div class="conf-wrap"><div class="conf-track"><div class="conf-fill" style="width:${r.conf}%;background:${intentBar[r.intent]}"></div></div><span style="font-size:12px;color:var(--muted);min-width:30px">${r.conf}%</span></div></td>
+    <td style="color:var(--muted)">${r.vol.toLocaleString()}/mo</td></tr>`).join('');
+}
+renderOut('all');
+
+function filterOut(v,btn){document.querySelectorAll('.f-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderOut(v);}
+function showMain(id,btn){document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.main-tab').forEach(b=>b.classList.remove('active'));document.getElementById('tab-'+id).classList.add('active');btn.classList.add('active');}
+function showProc(id,btn){document.querySelectorAll('.proc-panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.proc-tab').forEach(b=>b.classList.remove('active'));document.getElementById('proc-'+id).classList.add('active');btn.classList.add('active');}
+function showPhase(n,cell){
+  document.querySelectorAll('.tl-cell').forEach(c=>c.classList.remove('active'));cell.classList.add('active');
+  const ids=['p1','p2','p3','p4','p5','p6'];
+  document.querySelectorAll('.proc-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.proc-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('proc-'+ids[n-1]).classList.add('active');
+  document.querySelectorAll('.proc-tab')[n-1].classList.add('active');
+}
+</script>
+</body>
+</html>
